@@ -208,13 +208,25 @@ func highlight(text, query string) string {
 func (m SearchModel) View() string {
 	var b strings.Builder
 
-	// Title
+	// Fixed header section (title + input)
 	b.WriteString(searchTitleStyle.Render("Search Configs"))
 	b.WriteString("\n")
-
-	// Input
 	b.WriteString(searchInputStyle.Render(m.input.View()))
 	b.WriteString("\n")
+
+	// Calculate available space for results
+	// Header takes: title(1) + input border(3) + count(2) + help(2) = ~8 lines
+	headerLines := 8
+	availableHeight := m.height - headerLines
+	if availableHeight < 3 {
+		availableHeight = 3
+	}
+
+	// Each result item takes 2 lines (title + description)
+	maxItems := availableHeight / 2
+	if maxItems < 1 {
+		maxItems = 1
+	}
 
 	// Only show results if there's a query
 	if m.query != "" {
@@ -222,21 +234,17 @@ func (m SearchModel) View() string {
 		b.WriteString(searchCountStyle.Render(fmt.Sprintf("%d results", len(m.results))))
 		b.WriteString("\n\n")
 
-		// Results list
-		maxVisible := m.height - 10
-		if maxVisible < 3 {
-			maxVisible = 3
-		}
-
+		// Calculate visible window based on cursor position
 		start := 0
-		if m.cursor >= maxVisible {
-			start = m.cursor - maxVisible + 1
+		if m.cursor >= maxItems {
+			start = m.cursor - maxItems + 1
 		}
-		end := start + maxVisible
+		end := start + maxItems
 		if end > len(m.results) {
 			end = len(m.results)
 		}
 
+		// Render only the visible items
 		for i := start; i < end; i++ {
 			r := m.results[i]
 
@@ -264,9 +272,16 @@ func (m SearchModel) View() string {
 			}
 			b.WriteString("\n")
 		}
+
+		// Show scroll indicator if there are more items
+		if len(m.results) > maxItems {
+			scrollInfo := fmt.Sprintf("  showing %d-%d of %d", start+1, end, len(m.results))
+			b.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Render(scrollInfo))
+			b.WriteString("\n")
+		}
 	}
 
-	// Help
+	// Help (fixed at bottom conceptually)
 	var help string
 	if m.query == "" {
 		help = "type to search • esc: back • q: quit"
