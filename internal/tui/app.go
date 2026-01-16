@@ -128,37 +128,32 @@ func (m Model) updateMenu(msg tea.Msg) (Model, tea.Cmd) {
 
 // updateSearch handles updates for the search view.
 func (m Model) updateSearch(msg tea.Msg) (Model, tea.Cmd) {
-	// First let the search model handle the message
-	var cmd tea.Cmd
-	prevInputFocused := m.search.IsInputFocused()
-	m.search, cmd = m.search.Update(msg)
-
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		// Back to menu (only when not typing and esc wasn't just used to unfocus)
-		if msg.String() == "esc" && !prevInputFocused && !m.search.IsInputFocused() {
+		switch msg.String() {
+		case "esc":
+			// Go back to menu
+			m.search = NewSearchModel() // Reset search
+			m.search = m.search.SetSize(m.width, m.height)
 			m.currentView = MenuView
 			return m, nil
-		}
 
-		// Backspace goes back only when input is not focused and empty
-		if msg.String() == "backspace" && !m.search.IsInputFocused() && m.search.InputValue() == "" {
-			m.currentView = MenuView
-			return m, nil
-		}
-
-		// Select config from results
-		if msg.String() == "enter" && !m.search.IsInputFocused() {
-			if selected := m.search.SelectedConfig(); selected != nil {
-				m.selectedConfig = selected.ID
-				m.detail = m.detail.SetConfig(selected)
-				m.previousView = SearchView
-				m.currentView = DetailView
-				return m, nil
+		case "enter":
+			// Select config from results
+			if m.search.HasResults() {
+				if selected := m.search.SelectedConfig(); selected != nil {
+					m.selectedConfig = selected.ID
+					m.detail = m.detail.SetConfig(selected)
+					m.previousView = SearchView
+					m.currentView = DetailView
+					return m, nil
+				}
 			}
 		}
 	}
 
+	var cmd tea.Cmd
+	m.search, cmd = m.search.Update(msg)
 	return m, cmd
 }
 
