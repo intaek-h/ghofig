@@ -1,4 +1,6 @@
 package ghofig
 
-// This file will contain the go:embed directive for the database.
-// Placeholder until the database is generated.
+import _ "embed"
+
+//go:embed data/ghofig.db
+var EmbeddedDB []byte
