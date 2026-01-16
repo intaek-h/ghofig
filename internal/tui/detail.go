@@ -12,23 +12,17 @@ import (
 var (
 	detailTitleStyle = lipgloss.NewStyle().
 				Bold(true).
-				Foreground(lipgloss.Color("170")).
-				Background(lipgloss.Color("236")).
-				Padding(0, 2).
-				MarginBottom(1)
+				Foreground(ThemePrimary)
 
 	detailContentStyle = lipgloss.NewStyle().
-				Padding(1, 2)
+				Padding(PaddingY, PaddingX)
 
 	detailHelpStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("241")).
-			MarginTop(1).
-			MarginLeft(2)
+			Foreground(ThemeTextMuted).
+			MarginTop(MarginY)
 
-	detailBorderStyle = lipgloss.NewStyle().
-				Border(lipgloss.RoundedBorder()).
-				BorderForeground(lipgloss.Color("62")).
-				Padding(0, 1)
+	detailViewportStyle = lipgloss.NewStyle().
+				MarginLeft(MarginX)
 )
 
 // DetailModel represents the config detail view.
@@ -121,7 +115,7 @@ func (m DetailModel) View() string {
 
 	// Viewport with content
 	if m.ready {
-		content := detailBorderStyle.Render(m.viewport.View())
+		content := detailViewportStyle.Render(m.viewport.View())
 		b.WriteString(content)
 	} else {
 		b.WriteString(detailContentStyle.Render(m.config.Description))
@@ -132,8 +126,7 @@ func (m DetailModel) View() string {
 	if m.ready {
 		scrollPercent := m.viewport.ScrollPercent() * 100
 		scrollInfo = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("241")).
-			MarginLeft(2).
+			Foreground(ThemeTextMuted).
 			Render(strings.Repeat(" ", m.width-20) +
 				lipgloss.NewStyle().Render(
 					func() string {

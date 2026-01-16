@@ -14,43 +14,37 @@ import (
 var (
 	searchTitleStyle = lipgloss.NewStyle().
 				Bold(true).
-				Foreground(lipgloss.Color("170")).
-				MarginLeft(2)
-
-	searchInputStyle = lipgloss.NewStyle().
-				Border(lipgloss.RoundedBorder()).
-				BorderForeground(lipgloss.Color("170")).
-				Padding(0, 1).
-				MarginLeft(2).
-				MarginTop(1)
+				Foreground(ThemePrimary)
 
 	searchCountStyle = lipgloss.NewStyle().
-				Foreground(lipgloss.Color("241")).
-				MarginLeft(2).
-				MarginTop(1)
+				Foreground(ThemeTextMuted)
+
+	searchPromptStyle = lipgloss.NewStyle().
+				Foreground(ThemeTextMuted)
 
 	searchItemStyle = lipgloss.NewStyle().
-			PaddingLeft(4)
+			PaddingLeft(2)
 
-	searchSelectedStyle = lipgloss.NewStyle().
-				PaddingLeft(2).
-				Foreground(lipgloss.Color("170"))
+	searchSelectedStyle = lipgloss.NewStyle()
 
 	searchDescStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("241")).
-			PaddingLeft(6)
+			Foreground(ThemeTextMuted).
+			PaddingLeft(4)
 
 	searchSelectedDescStyle = lipgloss.NewStyle().
-				Foreground(lipgloss.Color("241")).
-				PaddingLeft(4)
+				Foreground(ThemeTextMuted).
+				PaddingLeft(2)
 
 	searchMatchStyle = lipgloss.NewStyle().
-				Foreground(lipgloss.Color("212")).
+				Foreground(ThemeMatch).
 				Bold(true)
 
+	searchSelectedMatchStyle = lipgloss.NewStyle().
+					Foreground(ThemeMatch).
+					Bold(true)
+
 	searchHelpStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("241")).
-			MarginLeft(2)
+			Foreground(ThemeTextMuted)
 )
 
 // SearchModel represents the search view.
@@ -67,12 +61,12 @@ type SearchModel struct {
 // NewSearchModel creates a new search model.
 func NewSearchModel() SearchModel {
 	ti := textinput.New()
-	ti.Placeholder = "Search configs..."
+	ti.Placeholder = "type to search..."
 	ti.CharLimit = 100
 	ti.Width = 40
-	ti.Prompt = " "
-	ti.TextStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("255"))
-	ti.PlaceholderStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
+	ti.Prompt = ""
+	ti.TextStyle = lipgloss.NewStyle().Foreground(colorGray100)
+	ti.PlaceholderStyle = lipgloss.NewStyle().Foreground(ThemeTextMuted)
 	ti.Focus()
 
 	return SearchModel{
@@ -161,24 +155,26 @@ func (m SearchModel) Update(msg tea.Msg) (SearchModel, tea.Cmd) {
 	return m, cmd
 }
 
-// highlight highlights query matches in text.
-func highlight(text, query string) string {
+// highlightWithStyle highlights query matches in text, applying baseStyle to non-match parts.
+func highlightWithStyle(text, query string, baseStyle, matchStyle lipgloss.Style) string {
 	if query == "" {
-		return text
+		return baseStyle.Render(text)
 	}
 
 	lower := strings.ToLower(text)
 	lowerQ := strings.ToLower(query)
 	idx := strings.Index(lower, lowerQ)
 	if idx == -1 {
-		return text
+		return baseStyle.Render(text)
 	}
 
 	var b strings.Builder
 	last := 0
 	for idx != -1 {
-		b.WriteString(text[last:idx])
-		b.WriteString(searchMatchStyle.Render(text[idx : idx+len(query)]))
+		if last < idx {
+			b.WriteString(baseStyle.Render(text[last:idx]))
+		}
+		b.WriteString(matchStyle.Render(text[idx : idx+len(query)]))
 		last = idx + len(query)
 		next := strings.Index(lower[last:], lowerQ)
 		if next == -1 {
@@ -186,17 +182,31 @@ func highlight(text, query string) string {
 		}
 		idx = last + next
 	}
-	b.WriteString(text[last:])
+	if last < len(text) {
+		b.WriteString(baseStyle.Render(text[last:]))
+	}
 	return b.String()
 }
 
 // View renders the search view.
 func (m SearchModel) View() string {
-	// Build fixed header: title + input
-	header := lipgloss.JoinVertical(lipgloss.Left,
-		searchTitleStyle.Render("Search Configs"),
-		searchInputStyle.Render(m.input.View()),
-	)
+	// Build title line with count
+	var titleLine string
+	if m.query != "" {
+		current := 0
+		if len(m.results) > 0 {
+			current = m.cursor + 1
+		}
+		titleLine = searchTitleStyle.Render("Search") + "  " + searchCountStyle.Render(fmt.Sprintf("%d/%d results", current, len(m.results)))
+	} else {
+		titleLine = searchTitleStyle.Render("Search")
+	}
+
+	// Build input line with prompt
+	inputLine := searchPromptStyle.Render("> ") + m.input.View()
+
+	// Combined header with blank line between title and input, and between input and list
+	header := titleLine + "\n\n" + inputLine + "\n"
 
 	// Build help footer
 	var helpText string
@@ -221,13 +231,8 @@ func (m SearchModel) View() string {
 	if m.query != "" && len(m.results) > 0 {
 		var lines []string
 
-		// Count line
-		countLine := searchCountStyle.Render(fmt.Sprintf("%d results", len(m.results)))
-		lines = append(lines, countLine)
-
-		// Calculate how many items we can show (each item = 2 lines)
-		availableForItems := resultsHeight - 2 // subtract count line and some padding
-		maxItems := availableForItems / 2
+		availableForItems := resultsHeight // items are single line now
+		maxItems := availableForItems
 		if maxItems < 1 {
 			maxItems = 1
 		}
@@ -242,27 +247,19 @@ func (m SearchModel) View() string {
 			end = len(m.results)
 		}
 
-		// Render items
+		// Render items (title only, no description)
 		for i := start; i < end; i++ {
 			r := m.results[i]
-
-			desc := r.Description
-			if idx := strings.Index(desc, "\n"); idx != -1 {
-				desc = desc[:idx]
-			}
-			if len(desc) > 50 {
-				desc = desc[:47] + "..."
-			}
-
-			title := highlight(r.Title, m.query)
-			desc = highlight(desc, m.query)
+			title := r.Title
 
 			if i == m.cursor {
-				lines = append(lines, searchSelectedStyle.Render("▶ "+title))
-				lines = append(lines, searchSelectedDescStyle.Render(desc))
+				// Selected item: apply primary color to non-match text
+				titleStyled := highlightWithStyle(title, m.query, lipgloss.NewStyle().Foreground(ThemePrimary), searchSelectedMatchStyle)
+				lines = append(lines, searchSelectedStyle.Render("\u27a4 \u25cb "+titleStyled))
 			} else {
-				lines = append(lines, searchItemStyle.Render(title))
-				lines = append(lines, searchDescStyle.Render(desc))
+				// Unselected item: no base color, just match highlights
+				titleStyled := highlightWithStyle(title, m.query, lipgloss.NewStyle(), searchMatchStyle)
+				lines = append(lines, searchItemStyle.Render("\u25cb "+titleStyled))
 			}
 		}
 

@@ -12,3 +12,5 @@ data/ghofig.db
 
 # OS
 .DS_Store
+
+ignore_this_dir

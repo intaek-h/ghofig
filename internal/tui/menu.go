@@ -12,11 +12,10 @@ import (
 var (
 	titleStyle = lipgloss.NewStyle().
 			Bold(true).
-			Foreground(lipgloss.Color("170")).
-			MarginLeft(2)
+			Foreground(ThemePrimary)
 
-	itemStyle         = lipgloss.NewStyle().PaddingLeft(4)
-	selectedItemStyle = lipgloss.NewStyle().PaddingLeft(2).Foreground(lipgloss.Color("170"))
+	itemStyle         = lipgloss.NewStyle().PaddingLeft(2)
+	selectedItemStyle = lipgloss.NewStyle().PaddingLeft(2).Foreground(ThemePrimary)
 )
 
 // MenuItem represents a menu item.
@@ -44,7 +43,7 @@ func (d MenuItemDelegate) Render(w io.Writer, m list.Model, index int, listItem 
 	fn := itemStyle.Render
 	if index == m.Index() {
 		fn = func(s ...string) string {
-			return selectedItemStyle.Render("> " + s[0])
+			return selectedItemStyle.Render(s[0])
 		}
 	}
 
@@ -102,8 +101,7 @@ func (m MenuModel) Update(msg tea.Msg) (MenuModel, tea.Cmd) {
 // View renders the menu.
 func (m MenuModel) View() string {
 	helpStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("241")).
-		MarginLeft(2)
+		Foreground(ThemeTextMuted)
 
 	help := helpStyle.Render("↑/↓: navigate • enter: select • q: quit")
 
