@@ -128,10 +128,21 @@ func (m Model) updateMenu(msg tea.Msg) (Model, tea.Cmd) {
 
 // updateSearch handles updates for the search view.
 func (m Model) updateSearch(msg tea.Msg) (Model, tea.Cmd) {
+	// First let the search model handle the message
+	var cmd tea.Cmd
+	prevInputFocused := m.search.IsInputFocused()
+	m.search, cmd = m.search.Update(msg)
+
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		// Back to menu (only when not typing)
-		if key.Matches(msg, m.keys.Back) && !m.search.IsInputFocused() {
+		// Back to menu (only when not typing and esc wasn't just used to unfocus)
+		if msg.String() == "esc" && !prevInputFocused && !m.search.IsInputFocused() {
+			m.currentView = MenuView
+			return m, nil
+		}
+
+		// Backspace goes back only when input is not focused and empty
+		if msg.String() == "backspace" && !m.search.IsInputFocused() && m.search.InputValue() == "" {
 			m.currentView = MenuView
 			return m, nil
 		}
@@ -148,8 +159,6 @@ func (m Model) updateSearch(msg tea.Msg) (Model, tea.Cmd) {
 		}
 	}
 
-	var cmd tea.Cmd
-	m.search, cmd = m.search.Update(msg)
 	return m, cmd
 }
 

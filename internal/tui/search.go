@@ -44,13 +44,14 @@ var (
 
 // SearchModel represents the search view.
 type SearchModel struct {
-	input      textinput.Model
-	results    []model.Config
-	cursor     int
-	width      int
-	height     int
-	inputFocus bool
-	err        error
+	input       textinput.Model
+	results     []model.Config
+	cursor      int
+	width       int
+	height      int
+	inputFocus  bool
+	err         error
+	initialized bool
 }
 
 // NewSearchModel creates a new search model.
@@ -59,10 +60,11 @@ func NewSearchModel() SearchModel {
 	ti.Placeholder = "Type to search configs..."
 	ti.CharLimit = 100
 	ti.Width = 50
+	ti.Prompt = "> "
 
 	return SearchModel{
 		input:      ti,
-		inputFocus: true,
+		inputFocus: false, // Start with results focused so user can navigate immediately
 	}
 }
 
@@ -76,11 +78,9 @@ func (m SearchModel) SetSize(width, height int) SearchModel {
 
 // Init initializes the search view.
 func (m SearchModel) Init() tea.Cmd {
+	m.initialized = true
 	// Load initial results (all configs)
-	return tea.Batch(
-		textinput.Blink,
-		m.doSearch(""),
-	)
+	return m.doSearch("")
 }
 
 // searchResultMsg carries search results.
@@ -110,14 +110,33 @@ func (m SearchModel) Update(msg tea.Msg) (SearchModel, tea.Cmd) {
 
 	case tea.KeyMsg:
 		switch msg.String() {
+		case "/":
+			// Focus input for searching
+			if !m.inputFocus {
+				m.inputFocus = true
+				m.input.Focus()
+				return m, textinput.Blink
+			}
+
 		case "tab":
 			// Toggle focus between input and results
 			m.inputFocus = !m.inputFocus
 			if m.inputFocus {
 				m.input.Focus()
+				return m, textinput.Blink
 			} else {
 				m.input.Blur()
 			}
+			return m, nil
+
+		case "esc":
+			// If input focused, unfocus it first
+			if m.inputFocus {
+				m.inputFocus = false
+				m.input.Blur()
+				return m, nil
+			}
+			// Otherwise, let parent handle (go back)
 			return m, nil
 
 		case "up", "k":
@@ -144,7 +163,7 @@ func (m SearchModel) Update(msg tea.Msg) (SearchModel, tea.Cmd) {
 		}
 	}
 
-	// Update text input
+	// Update text input only if focused
 	if m.inputFocus {
 		var cmd tea.Cmd
 		prevValue := m.input.Value()
@@ -168,8 +187,12 @@ func (m SearchModel) View() string {
 	b.WriteString(searchTitleStyle.Render("Search Configs"))
 	b.WriteString("\n")
 
-	// Input
-	b.WriteString(searchInputStyle.Render(m.input.View()))
+	// Input with focus indicator
+	inputLabel := "  "
+	if m.inputFocus {
+		inputLabel = "> "
+	}
+	b.WriteString(searchInputStyle.Render(inputLabel + m.input.View()))
 	b.WriteString("\n")
 
 	// Error
@@ -223,7 +246,12 @@ func (m SearchModel) View() string {
 	}
 
 	// Help
-	help := "tab: switch focus • ↑/↓: navigate • enter: select • esc: back • q: quit"
+	var help string
+	if m.inputFocus {
+		help = "enter/tab: done typing • esc: cancel • q: quit"
+	} else {
+		help = "/: search • ↑/↓: navigate • enter: select • esc: back • q: quit"
+	}
 	b.WriteString(searchHelpStyle.Render(help))
 
 	return b.String()
@@ -232,6 +260,11 @@ func (m SearchModel) View() string {
 // IsInputFocused returns whether the search input is focused.
 func (m SearchModel) IsInputFocused() bool {
 	return m.inputFocus
+}
+
+// InputValue returns the current input value.
+func (m SearchModel) InputValue() string {
+	return m.input.Value()
 }
 
 // SelectedConfig returns the currently selected config.
