@@ -7,8 +7,9 @@ A TUI-based CLI tool for browsing and managing Ghostty terminal configuration.
 ## Features (PoC)
 
 - Browse Ghostty configuration options with an intuitive TUI
-- Search through 180+ config options by name or description
+- Search through 182 config options by name or description
 - View detailed documentation for each option
+- Embedded database - works offline, no external dependencies
 
 ## Installation
 
@@ -22,14 +23,35 @@ go install github.com/intaek-h/ghofig/cmd/ghofig@latest
 ghofig
 ```
 
+### Navigation
+
+The app has three views:
+
+1. **Main Menu** - Select "Configs" to browse configuration options
+2. **Search** - Type to filter configs, navigate results with arrow keys
+3. **Detail** - View full documentation for a config option (scrollable)
+
 ### Keybindings
 
+#### Global
 | Key | Action |
 |-----|--------|
-| `q` | Quit application |
+| `q` / `ctrl+c` | Quit application |
 | `esc` / `backspace` | Go back to previous view |
+
+#### Menu & Search Results
+| Key | Action |
+|-----|--------|
+| `up/down` or `k/j` | Navigate list |
 | `enter` | Select item |
-| `up/down` or `k/j` | Navigate lists |
+| `tab` | Toggle focus (search view) |
+
+#### Detail View
+| Key | Action |
+|-----|--------|
+| `up/down` or `k/j` | Scroll line by line |
+| `pgup/pgdn` | Scroll half page |
+| `home/end` or `g/G` | Jump to top/bottom |
 
 ## Development
 
@@ -71,14 +93,38 @@ ghofig/
 └── embed.go             # go:embed directive for database
 ```
 
+### Makefile Commands
+
+```bash
+make parse    # Parse reference.mdx.txt and generate database
+make build    # Build binary to bin/ghofig
+make run      # Build and run
+make clean    # Remove build artifacts
+```
+
 ### Updating Config Documentation
 
 When Ghostty releases new configuration options:
 
-1. Download the latest config reference from Ghostty's repository
+1. Download the latest config reference from [Ghostty's repository](https://github.com/ghostty-org/ghostty)
 2. Replace `reference.mdx.txt`
 3. Run `make parse` to regenerate the database
 4. Rebuild the binary
+
+## Architecture
+
+```
+Development time:
+  reference.mdx.txt → parser → ghofig.db
+
+Build time:
+  ghofig.db → go:embed → binary
+
+Runtime:
+  binary → in-memory SQLite → TUI
+```
+
+The config documentation is parsed once during development and stored in an SQLite database. This database is embedded into the binary at compile time using Go's `embed` package, making the tool completely self-contained.
 
 ## Future Scope
 
@@ -86,6 +132,7 @@ When Ghostty releases new configuration options:
 - Append config options from search results
 - Config validation
 - Theme preview
+- Fuzzy search
 
 ## License
 

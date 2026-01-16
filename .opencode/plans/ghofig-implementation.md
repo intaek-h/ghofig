@@ -109,10 +109,10 @@ CREATE INDEX idx_configs_title ON configs(title);
 | 2 | `feat: add config parser tool` | ✅ Completed |
 | 3 | `feat: add db layer with embedded sqlite` | ✅ Completed |
 | 4 | `feat: add tui app shell with view routing` | ✅ Completed |
-| 5 | `feat: add main menu view` | 🔄 In Progress |
-| 6 | `feat: add search view with db integration` | ⏳ Pending |
-| 7 | `feat: add detail view` | ⏳ Pending |
-| 8 | `chore: polish styling and update readme` | ⏳ Pending |
+| 5 | `feat: add main menu view` | ✅ Completed |
+| 6 | `feat: add search view with db integration` | ✅ Completed |
+| 7 | `feat: add detail view` | ✅ Completed |
+| 8 | `chore: polish styling and update readme` | ✅ Completed |
 
 ## Commit Details
 
@@ -142,29 +142,32 @@ CREATE INDEX idx_configs_title ON configs(title);
 - Global keybindings (q, esc, backspace)
 - `cmd/ghofig/main.go` - entry point with DB init
 
-### Commit 5: Main Menu 🔄
+### Commit 5: Main Menu ✅
 - `internal/tui/menu.go` with bubbles/list
 - Single item: "Configs"
 - Styled with lipgloss
 - Enter → transitions to Search view
 
-### Commit 6: Search View ⏳
+### Commit 6: Search View ✅
 - `internal/tui/search.go`
 - Text input (bubbles/textinput) at top
 - Results list below showing title + truncated description
 - On input change → query DB → update list
 - Search SQL prioritizes title matches
+- Tab to toggle focus between input and results
 
-### Commit 7: Detail View ⏳
+### Commit 7: Detail View ✅
 - `internal/tui/detail.go`
 - Header: config title (styled)
 - Body: full description (scrollable viewport)
 - esc/backspace → back to Search
+- Support for pgup/pgdn, home/end navigation
 
-### Commit 8: Polish ⏳
+### Commit 8: Polish ✅
 - Consistent styling across views
-- Help text footer
-- Update README with usage instructions
+- Help text footer in all views
+- Updated README with detailed usage instructions
+- Architecture documentation
 
 ## Future Scope (Post-PoC)
 
