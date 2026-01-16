@@ -50,8 +50,7 @@ var (
 
 	searchHelpStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("241")).
-			MarginLeft(2).
-			MarginTop(1)
+			MarginLeft(2)
 )
 
 // SearchModel represents the search view.
@@ -74,7 +73,7 @@ func NewSearchModel() SearchModel {
 	ti.Prompt = " "
 	ti.TextStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("255"))
 	ti.PlaceholderStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
-	ti.Focus() // Start focused
+	ti.Focus()
 
 	return SearchModel{
 		input:  ti,
@@ -123,9 +122,7 @@ func (m SearchModel) Update(msg tea.Msg) (SearchModel, tea.Cmd) {
 	case tea.KeyMsg:
 		key := msg.String()
 
-		// Arrow keys: unfocus input and navigate
 		if key == "up" || key == "down" {
-			// Only navigate if we have results
 			if len(m.results) > 0 {
 				m.input.Blur()
 				if key == "up" && m.cursor > 0 {
@@ -137,34 +134,23 @@ func (m SearchModel) Update(msg tea.Msg) (SearchModel, tea.Cmd) {
 			return m, nil
 		}
 
-		// Enter: select item if navigating, otherwise do nothing
-		if key == "enter" {
-			// Selection handled by parent if we have results and cursor is valid
+		if key == "enter" || key == "esc" {
 			return m, nil
 		}
 
-		// Esc: go back (handled by parent)
-		if key == "esc" {
-			return m, nil
-		}
-
-		// Any other key: focus input and type
 		if !m.input.Focused() {
 			m.input.Focus()
 		}
 	}
 
-	// Update text input
 	prevValue := m.input.Value()
 	var cmd tea.Cmd
 	m.input, cmd = m.input.Update(msg)
 
-	// If input changed, search and reset cursor
 	if m.input.Value() != prevValue {
 		m.cursor = 0
 		newQuery := m.input.Value()
 		if newQuery == "" {
-			// Clear results when input is empty
 			m.results = nil
 			m.query = ""
 			return m, cmd
@@ -206,35 +192,47 @@ func highlight(text, query string) string {
 
 // View renders the search view.
 func (m SearchModel) View() string {
-	var b strings.Builder
+	// Build fixed header: title + input
+	header := lipgloss.JoinVertical(lipgloss.Left,
+		searchTitleStyle.Render("Search Configs"),
+		searchInputStyle.Render(m.input.View()),
+	)
 
-	// Fixed header section (title + input)
-	b.WriteString(searchTitleStyle.Render("Search Configs"))
-	b.WriteString("\n")
-	b.WriteString(searchInputStyle.Render(m.input.View()))
-	b.WriteString("\n")
+	// Build help footer
+	var helpText string
+	if m.query == "" {
+		helpText = "type to search • esc: back • q: quit"
+	} else {
+		helpText = "↑/↓: navigate • enter: select • esc: back • q: quit"
+	}
+	footer := searchHelpStyle.Render(helpText)
 
-	// Calculate available space for results
-	// Header takes: title(1) + input border(3) + count(2) + help(2) = ~8 lines
-	headerLines := 8
-	availableHeight := m.height - headerLines
-	if availableHeight < 3 {
-		availableHeight = 3
+	// Calculate heights
+	headerHeight := lipgloss.Height(header)
+	footerHeight := lipgloss.Height(footer)
+	resultsHeight := m.height - headerHeight - footerHeight - 2 // 2 for margins
+
+	if resultsHeight < 3 {
+		resultsHeight = 3
 	}
 
-	// Each result item takes 2 lines (title + description)
-	maxItems := availableHeight / 2
-	if maxItems < 1 {
-		maxItems = 1
-	}
+	// Build results section
+	var resultsContent string
+	if m.query != "" && len(m.results) > 0 {
+		var lines []string
 
-	// Only show results if there's a query
-	if m.query != "" {
-		// Results count
-		b.WriteString(searchCountStyle.Render(fmt.Sprintf("%d results", len(m.results))))
-		b.WriteString("\n\n")
+		// Count line
+		countLine := searchCountStyle.Render(fmt.Sprintf("%d results", len(m.results)))
+		lines = append(lines, countLine)
 
-		// Calculate visible window based on cursor position
+		// Calculate how many items we can show (each item = 2 lines)
+		availableForItems := resultsHeight - 2 // subtract count line and some padding
+		maxItems := availableForItems / 2
+		if maxItems < 1 {
+			maxItems = 1
+		}
+
+		// Calculate window
 		start := 0
 		if m.cursor >= maxItems {
 			start = m.cursor - maxItems + 1
@@ -244,11 +242,10 @@ func (m SearchModel) View() string {
 			end = len(m.results)
 		}
 
-		// Render only the visible items
+		// Render items
 		for i := start; i < end; i++ {
 			r := m.results[i]
 
-			// Truncate description
 			desc := r.Description
 			if idx := strings.Index(desc, "\n"); idx != -1 {
 				desc = desc[:idx]
@@ -257,40 +254,35 @@ func (m SearchModel) View() string {
 				desc = desc[:47] + "..."
 			}
 
-			// Highlight matches
 			title := highlight(r.Title, m.query)
 			desc = highlight(desc, m.query)
 
 			if i == m.cursor {
-				b.WriteString(searchSelectedStyle.Render("▶ " + title))
-				b.WriteString("\n")
-				b.WriteString(searchSelectedDescStyle.Render(desc))
+				lines = append(lines, searchSelectedStyle.Render("▶ "+title))
+				lines = append(lines, searchSelectedDescStyle.Render(desc))
 			} else {
-				b.WriteString(searchItemStyle.Render(title))
-				b.WriteString("\n")
-				b.WriteString(searchDescStyle.Render(desc))
+				lines = append(lines, searchItemStyle.Render(title))
+				lines = append(lines, searchDescStyle.Render(desc))
 			}
-			b.WriteString("\n")
 		}
 
-		// Show scroll indicator if there are more items
-		if len(m.results) > maxItems {
-			scrollInfo := fmt.Sprintf("  showing %d-%d of %d", start+1, end, len(m.results))
-			b.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Render(scrollInfo))
-			b.WriteString("\n")
-		}
+		resultsContent = strings.Join(lines, "\n")
+	} else if m.query != "" {
+		resultsContent = searchCountStyle.Render("0 results")
 	}
 
-	// Help (fixed at bottom conceptually)
-	var help string
-	if m.query == "" {
-		help = "type to search • esc: back • q: quit"
-	} else {
-		help = "↑/↓: navigate • enter: select • esc: back • q: quit"
-	}
-	b.WriteString(searchHelpStyle.Render(help))
+	// Constrain results to fixed height
+	resultsSection := lipgloss.NewStyle().
+		Height(resultsHeight).
+		MaxHeight(resultsHeight).
+		Render(resultsContent)
 
-	return b.String()
+	// Join all sections vertically
+	return lipgloss.JoinVertical(lipgloss.Left,
+		header,
+		resultsSection,
+		footer,
+	)
 }
 
 // IsInputFocused returns whether input is focused.
