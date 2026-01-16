@@ -1,0 +1,14 @@
+# Build output
+bin/
+
+# Generated database (regenerate with: make parse)
+data/ghofig.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
