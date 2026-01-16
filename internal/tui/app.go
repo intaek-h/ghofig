@@ -67,9 +67,13 @@ func (m Model) Init() tea.Cmd {
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		// Global quit
+		// Global quit (but not while editing in detail view)
 		if key.Matches(msg, m.keys.Quit) {
-			return m, tea.Quit
+			if m.currentView == DetailView && m.detail.IsEditing() {
+				// Don't quit while editing, let detail handle it
+			} else {
+				return m, tea.Quit
+			}
 		}
 
 	case tea.WindowSizeMsg:
@@ -161,8 +165,8 @@ func (m Model) updateSearch(msg tea.Msg) (Model, tea.Cmd) {
 func (m Model) updateDetail(msg tea.Msg) (Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		// Back to search
-		if key.Matches(msg, m.keys.Back) {
+		// Back to search (but not while editing)
+		if key.Matches(msg, m.keys.Back) && !m.detail.IsEditing() {
 			m.currentView = SearchView
 			return m, nil
 		}

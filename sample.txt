@@ -1,0 +1,14 @@
+font-feature
+
+  ➤ ○ Open Editor For `font-feature`
+  > font-feature = 
+  Press Enter to append this option to the config file.
+
+  Apply a font feature. To enable multiple font features you can repea
+  this multiple times or use a comma-separated list of feature setting
+
+  The syntax for feature settings is as follows, where `feat` is a fea
+
+  ...skipped
+
+↑/↓: scroll • pgup/pgdn: page • home/end: top/bottom • esc/backspace: bac

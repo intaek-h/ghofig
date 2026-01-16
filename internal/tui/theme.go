@@ -49,7 +49,7 @@ var (
 	// Text
 	ThemeText      = colorGray1000 // Main text
 	ThemeTextMuted = colorGray600  // Secondary text, descriptions, help
-	ThemeTextInput = colorGray1000 // Input text color
+	ThemeTextInput = colorGray100  // Input text color
 
 	// Backgrounds
 	ThemeBgDefault   = colorBackground100
