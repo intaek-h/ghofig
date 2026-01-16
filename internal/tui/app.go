@@ -67,9 +67,11 @@ func (m Model) Init() tea.Cmd {
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		// Global quit (but not while editing in detail view)
+		// Global quit (but not while typing in search or editing in detail)
 		if key.Matches(msg, m.keys.Quit) {
-			if m.currentView == DetailView && m.detail.IsEditing() {
+			if m.currentView == SearchView && m.search.IsInputFocused() {
+				// Don't quit while typing in search, let search handle it
+			} else if m.currentView == DetailView && m.detail.IsEditing() {
 				// Don't quit while editing, let detail handle it
 			} else {
 				return m, tea.Quit
