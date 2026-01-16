@@ -3,6 +3,7 @@ package tui
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
@@ -10,12 +11,19 @@ import (
 )
 
 var (
-	titleStyle = lipgloss.NewStyle().
-			Bold(true).
-			Foreground(ThemePrimary)
+	menuLogoStyle = lipgloss.NewStyle().
+			Foreground(colorGray100)
 
-	itemStyle         = lipgloss.NewStyle().PaddingLeft(2)
-	selectedItemStyle = lipgloss.NewStyle().PaddingLeft(2).Foreground(ThemePrimary)
+	menuItemStyle = lipgloss.NewStyle()
+
+	menuSelectedStyle = lipgloss.NewStyle().
+				Foreground(ThemePrimary)
+
+	menuDescStyle = lipgloss.NewStyle().
+			Foreground(ThemeTextMuted)
+
+	menuHelpStyle = lipgloss.NewStyle().
+			Foreground(ThemeTextMuted)
 )
 
 // MenuItem represents a menu item.
@@ -38,16 +46,19 @@ func (d MenuItemDelegate) Render(w io.Writer, m list.Model, index int, listItem 
 		return
 	}
 
-	str := fmt.Sprintf("%s", i.title)
+	num := fmt.Sprintf("%d.", index+1)
 
-	fn := itemStyle.Render
 	if index == m.Index() {
-		fn = func(s ...string) string {
-			return selectedItemStyle.Render(s[0])
-		}
+		// Selected: ➤ 1. Title        Description
+		titlePart := menuSelectedStyle.Render(fmt.Sprintf("\u27a4 %s %s", num, i.title))
+		descPart := menuDescStyle.Render(i.description)
+		fmt.Fprintf(w, "%s        %s", titlePart, descPart)
+	} else {
+		// Unselected:   1. Title        Description
+		titlePart := menuItemStyle.Render(fmt.Sprintf("  %s %s", num, i.title))
+		descPart := menuDescStyle.Render(i.description)
+		fmt.Fprintf(w, "%s        %s", titlePart, descPart)
 	}
-
-	fmt.Fprint(w, fn(str))
 }
 
 // MenuModel represents the main menu view.
@@ -60,15 +71,14 @@ type MenuModel struct {
 // NewMenuModel creates a new menu model.
 func NewMenuModel() MenuModel {
 	items := []list.Item{
-		MenuItem{title: "Configs", description: "Browse Ghostty configuration options"},
+		MenuItem{title: "Config Options", description: "Search Ghostty configuration options"},
 	}
 
 	l := list.New(items, MenuItemDelegate{}, 0, 0)
-	l.Title = "Ghofig"
+	l.Title = "" // We render custom ASCII title
 	l.SetShowStatusBar(false)
 	l.SetFilteringEnabled(false)
 	l.SetShowHelp(false)
-	l.Styles.Title = titleStyle
 
 	return MenuModel{
 		list: l,
@@ -80,7 +90,9 @@ func (m MenuModel) SetSize(width, height int) MenuModel {
 	m.width = width
 	m.height = height
 	m.list.SetWidth(width)
-	m.list.SetHeight(height - 2) // Leave room for help text
+	// Logo takes ~19 lines + 2 for spacing + 1 for help
+	logoHeight := 22
+	m.list.SetHeight(height - logoHeight)
 	return m
 }
 
@@ -100,12 +112,30 @@ func (m MenuModel) Update(msg tea.Msg) (MenuModel, tea.Cmd) {
 
 // View renders the menu.
 func (m MenuModel) View() string {
-	helpStyle := lipgloss.NewStyle().
-		Foreground(ThemeTextMuted)
+	var b strings.Builder
 
-	help := helpStyle.Render("↑/↓: navigate • enter: select • q: quit")
+	// ASCII art logo
+	logo := `   _____ _               _   _         
+  / ____| |             | | | |        
+ | |  __| |__   ___  ___| |_| |_ _   _ 
+ | | |_ | '_ \ / _ \/ __| __| __| | | |
+ | |__| | | | | (_) \__ \ |_| |_| |_| |
+  \_____|_| |_|\___/|___/\__|\__|\__, |
+                                  __/ |
+                                 |___/    `
 
-	return m.list.View() + "\n" + help
+	b.WriteString(menuLogoStyle.Render(logo + "\nGhofig: Ghostty Config Editor"))
+	b.WriteString("\n\n")
+
+	// Menu items
+	b.WriteString(m.list.View())
+	b.WriteString("\n")
+
+	// Help
+	help := menuHelpStyle.Render("↑/↓: navigate • enter: select • q: quit")
+	b.WriteString(help)
+
+	return b.String()
 }
 
 // SelectedItem returns the currently selected menu item.
