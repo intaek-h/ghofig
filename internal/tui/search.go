@@ -15,12 +15,22 @@ var (
 	searchTitleStyle = lipgloss.NewStyle().
 				Bold(true).
 				Foreground(lipgloss.Color("170")).
-				MarginLeft(2).
-				MarginBottom(1)
+				MarginLeft(2)
 
-	searchInputStyle = lipgloss.NewStyle().
-				MarginLeft(2).
-				MarginBottom(1)
+	searchInputContainerStyle = lipgloss.NewStyle().
+					MarginLeft(2).
+					MarginTop(1).
+					MarginBottom(1)
+
+	inputFocusedStyle = lipgloss.NewStyle().
+				Border(lipgloss.RoundedBorder()).
+				BorderForeground(lipgloss.Color("170")).
+				Padding(0, 1)
+
+	inputBlurredStyle = lipgloss.NewStyle().
+				Border(lipgloss.RoundedBorder()).
+				BorderForeground(lipgloss.Color("240")).
+				Padding(0, 1)
 
 	resultTitleStyle = lipgloss.NewStyle().
 				Bold(true).
@@ -28,6 +38,11 @@ var (
 
 	resultDescStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("241"))
+
+	highlightStyle = lipgloss.NewStyle().
+			Bold(true).
+			Foreground(lipgloss.Color("212")).
+			Background(lipgloss.Color("236"))
 
 	selectedResultStyle = lipgloss.NewStyle().
 				Background(lipgloss.Color("236")).
@@ -40,6 +55,10 @@ var (
 			Foreground(lipgloss.Color("241")).
 			MarginLeft(2).
 			MarginTop(1)
+
+	countStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("241")).
+			MarginLeft(2)
 )
 
 // SearchModel represents the search view.
@@ -50,6 +69,7 @@ type SearchModel struct {
 	width       int
 	height      int
 	inputFocus  bool
+	query       string // Store query for highlighting
 	err         error
 	initialized bool
 }
@@ -60,7 +80,9 @@ func NewSearchModel() SearchModel {
 	ti.Placeholder = "Type to search configs..."
 	ti.CharLimit = 100
 	ti.Width = 50
-	ti.Prompt = "> "
+	ti.Prompt = ""
+	ti.TextStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("255"))
+	ti.PlaceholderStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
 
 	return SearchModel{
 		input:      ti,
@@ -72,7 +94,7 @@ func NewSearchModel() SearchModel {
 func (m SearchModel) SetSize(width, height int) SearchModel {
 	m.width = width
 	m.height = height
-	m.input.Width = width - 6
+	m.input.Width = width - 10
 	return m
 }
 
@@ -86,6 +108,7 @@ func (m SearchModel) Init() tea.Cmd {
 // searchResultMsg carries search results.
 type searchResultMsg struct {
 	results []model.Config
+	query   string
 	err     error
 }
 
@@ -93,7 +116,7 @@ type searchResultMsg struct {
 func (m SearchModel) doSearch(query string) tea.Cmd {
 	return func() tea.Msg {
 		results, err := db.Search(query)
-		return searchResultMsg{results: results, err: err}
+		return searchResultMsg{results: results, query: query, err: err}
 	}
 }
 
@@ -104,6 +127,7 @@ func (m SearchModel) Update(msg tea.Msg) (SearchModel, tea.Cmd) {
 	switch msg := msg.(type) {
 	case searchResultMsg:
 		m.results = msg.results
+		m.query = msg.query
 		m.err = msg.err
 		m.cursor = 0
 		return m, nil
@@ -179,6 +203,46 @@ func (m SearchModel) Update(msg tea.Msg) (SearchModel, tea.Cmd) {
 	return m, tea.Batch(cmds...)
 }
 
+// highlightMatches highlights the query string within text.
+func highlightMatches(text, query string) string {
+	if query == "" {
+		return text
+	}
+
+	lowerText := strings.ToLower(text)
+	lowerQuery := strings.ToLower(query)
+
+	idx := strings.Index(lowerText, lowerQuery)
+	if idx == -1 {
+		return text
+	}
+
+	// Build highlighted string
+	var result strings.Builder
+	lastEnd := 0
+
+	for idx != -1 {
+		// Add text before match
+		result.WriteString(text[lastEnd:idx])
+		// Add highlighted match (preserve original case)
+		result.WriteString(highlightStyle.Render(text[idx : idx+len(query)]))
+		lastEnd = idx + len(query)
+
+		// Find next match
+		nextIdx := strings.Index(lowerText[lastEnd:], lowerQuery)
+		if nextIdx == -1 {
+			idx = -1
+		} else {
+			idx = lastEnd + nextIdx
+		}
+	}
+
+	// Add remaining text
+	result.WriteString(text[lastEnd:])
+
+	return result.String()
+}
+
 // View renders the search view.
 func (m SearchModel) View() string {
 	var b strings.Builder
@@ -187,12 +251,15 @@ func (m SearchModel) View() string {
 	b.WriteString(searchTitleStyle.Render("Search Configs"))
 	b.WriteString("\n")
 
-	// Input with focus indicator
-	inputLabel := "  "
+	// Input box with border
+	var inputBox string
+	inputView := m.input.View()
 	if m.inputFocus {
-		inputLabel = "> "
+		inputBox = inputFocusedStyle.Render(inputView)
+	} else {
+		inputBox = inputBlurredStyle.Render(inputView)
 	}
-	b.WriteString(searchInputStyle.Render(inputLabel + m.input.View()))
+	b.WriteString(searchInputContainerStyle.Render(inputBox))
 	b.WriteString("\n")
 
 	// Error
@@ -200,13 +267,16 @@ func (m SearchModel) View() string {
 		b.WriteString(fmt.Sprintf("Error: %v\n", m.err))
 	}
 
-	// Results count
-	countStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("241")).MarginLeft(2)
-	b.WriteString(countStyle.Render(fmt.Sprintf("%d results", len(m.results))))
+	// Results count and current query
+	queryInfo := ""
+	if m.query != "" {
+		queryInfo = fmt.Sprintf(" for \"%s\"", m.query)
+	}
+	b.WriteString(countStyle.Render(fmt.Sprintf("%d results%s", len(m.results), queryInfo)))
 	b.WriteString("\n\n")
 
 	// Results list
-	maxVisible := m.height - 10 // Leave room for header and footer
+	maxVisible := m.height - 12 // Leave room for header and footer
 	if maxVisible < 1 {
 		maxVisible = 5
 	}
@@ -233,12 +303,24 @@ func (m SearchModel) View() string {
 			desc = desc[:57] + "..."
 		}
 
-		title := resultTitleStyle.Render(result.Title)
-		descStr := resultDescStyle.Render(desc)
-		line := fmt.Sprintf("%s\n  %s", title, descStr)
+		// Highlight matches in title and description
+		title := highlightMatches(result.Title, m.query)
+		if m.query == "" {
+			title = resultTitleStyle.Render(result.Title)
+		}
+		descHighlighted := highlightMatches(desc, m.query)
+		if m.query == "" {
+			descHighlighted = resultDescStyle.Render(desc)
+		} else {
+			descHighlighted = resultDescStyle.Render(descHighlighted)
+		}
 
-		if i == m.cursor && !m.inputFocus {
-			b.WriteString(selectedResultStyle.Render("> " + line))
+		line := fmt.Sprintf("%s\n   %s", title, descHighlighted)
+
+		isSelected := i == m.cursor && !m.inputFocus
+		if isSelected {
+			// Add selection indicator
+			b.WriteString(selectedResultStyle.Render("▶ " + line))
 		} else {
 			b.WriteString(normalResultStyle.Render("  " + line))
 		}
@@ -248,9 +330,9 @@ func (m SearchModel) View() string {
 	// Help
 	var help string
 	if m.inputFocus {
-		help = "enter/tab: done typing • esc: cancel • q: quit"
+		help = "type to search • enter/tab: navigate results • esc: cancel"
 	} else {
-		help = "/: search • ↑/↓: navigate • enter: select • esc: back • q: quit"
+		help = "/: search • ↑/↓: navigate • enter: view detail • esc: back • q: quit"
 	}
 	b.WriteString(searchHelpStyle.Render(help))
 
