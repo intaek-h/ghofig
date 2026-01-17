@@ -124,6 +124,91 @@ func ConfigExists() bool {
 	return err == nil
 }
 
+// CommentOut comments out all occurrences of an option in the config file.
+// Returns true if any lines were commented out, false if no matching lines found.
+func CommentOut(optionName string) (bool, error) {
+	configPath, err := GetConfigPath()
+	if err != nil {
+		return false, err
+	}
+
+	data, err := os.ReadFile(configPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return false, nil // No config file, nothing to comment out
+		}
+		return false, err
+	}
+
+	lines := strings.Split(string(data), "\n")
+	var newContent strings.Builder
+	commentedAny := false
+
+	for i, line := range lines {
+		trimmed := strings.TrimSpace(line)
+
+		// Check if this line sets the target option (and isn't already commented)
+		if !strings.HasPrefix(trimmed, "#") && trimmed != "" {
+			if parts := strings.SplitN(trimmed, "=", 2); len(parts) == 2 {
+				key := strings.TrimSpace(parts[0])
+				if key == optionName {
+					// Comment out this line
+					line = "# " + line
+					commentedAny = true
+				}
+			}
+		}
+
+		newContent.WriteString(line)
+		if i < len(lines)-1 {
+			newContent.WriteString("\n")
+		}
+	}
+
+	if !commentedAny {
+		return false, nil
+	}
+
+	err = os.WriteFile(configPath, []byte(newContent.String()), 0644)
+	return commentedAny, err
+}
+
+// ReadFile reads the entire config file content.
+// Returns empty string if file doesn't exist.
+func ReadFile() (string, error) {
+	configPath, err := GetConfigPath()
+	if err != nil {
+		return "", err
+	}
+
+	data, err := os.ReadFile(configPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return "", nil // Return empty string for non-existent file
+		}
+		return "", err
+	}
+
+	return string(data), nil
+}
+
+// WriteFile writes the entire content to the config file.
+// Creates the file and parent directories if they don't exist.
+func WriteFile(content string) error {
+	configPath, err := GetConfigPath()
+	if err != nil {
+		return err
+	}
+
+	// Ensure parent directory exists
+	dir := filepath.Dir(configPath)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return err
+	}
+
+	return os.WriteFile(configPath, []byte(content), 0644)
+}
+
 // GetValue reads the current value for a config option from the config file.
 // Returns empty string if not found.
 func GetValue(optionName string) string {

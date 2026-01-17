@@ -12,6 +12,7 @@ const (
 	MenuView View = iota
 	SearchView
 	DetailView
+	EditorView
 )
 
 // KeyMap defines the keybindings for the app.
@@ -44,6 +45,7 @@ type Model struct {
 	menu           MenuModel
 	search         SearchModel
 	detail         DetailModel
+	editor         EditorModel
 	selectedConfig int // ID of selected config for detail view
 }
 
@@ -55,6 +57,7 @@ func New() Model {
 		menu:        NewMenuModel(),
 		search:      NewSearchModel(),
 		detail:      NewDetailModel(),
+		editor:      NewEditorModel(),
 	}
 }
 
@@ -84,6 +87,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.menu = m.menu.SetSize(msg.Width, msg.Height)
 		m.search = m.search.SetSize(msg.Width, msg.Height)
 		m.detail = m.detail.SetSize(msg.Width, msg.Height)
+		m.editor = m.editor.SetSize(msg.Width, msg.Height)
 	}
 
 	// Route to current view
@@ -95,6 +99,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m, cmd = m.updateSearch(msg)
 	case DetailView:
 		m, cmd = m.updateDetail(msg)
+	case EditorView:
+		m, cmd = m.updateEditor(msg)
 	}
 
 	return m, cmd
@@ -109,6 +115,8 @@ func (m Model) View() string {
 		return m.search.View()
 	case DetailView:
 		return m.detail.View()
+	case EditorView:
+		return m.editor.View()
 	default:
 		return "Unknown view"
 	}
@@ -120,10 +128,19 @@ func (m Model) updateMenu(msg tea.Msg) (Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "enter":
-			// Menu selection - for now, only "Configs" option
+			// Route based on selected menu item
+			selectedIndex := m.menu.list.Index()
 			m.previousView = MenuView
-			m.currentView = SearchView
-			return m, m.search.Init()
+
+			switch selectedIndex {
+			case MenuItemConfigOptions:
+				m.currentView = SearchView
+				return m, m.search.Init()
+			case MenuItemConfigEditor:
+				m.currentView = EditorView
+				m.editor = m.editor.SetSize(m.width, m.height)
+				return m, m.editor.Init()
+			}
 		}
 	}
 
@@ -176,5 +193,22 @@ func (m Model) updateDetail(msg tea.Msg) (Model, tea.Cmd) {
 
 	var cmd tea.Cmd
 	m.detail, cmd = m.detail.Update(msg)
+	return m, cmd
+}
+
+// updateEditor handles updates for the editor view.
+func (m Model) updateEditor(msg tea.Msg) (Model, tea.Cmd) {
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		// Back to menu on Esc only (not backspace - textarea needs it)
+		if msg.String() == "esc" {
+			m.editor = NewEditorModel() // Reset editor
+			m.currentView = MenuView
+			return m, nil
+		}
+	}
+
+	var cmd tea.Cmd
+	m.editor, cmd = m.editor.Update(msg)
 	return m, cmd
 }

@@ -68,10 +68,17 @@ type MenuModel struct {
 	height int
 }
 
+// Menu item indices for selection handling
+const (
+	MenuItemConfigOptions = iota
+	MenuItemConfigEditor
+)
+
 // NewMenuModel creates a new menu model.
 func NewMenuModel() MenuModel {
 	items := []list.Item{
 		MenuItem{title: "Config Options", description: "Search Ghostty configuration options"},
+		MenuItem{title: "Config Editor", description: "Edit your Ghostty config file directly"},
 	}
 
 	l := list.New(items, MenuItemDelegate{}, 0, 0)

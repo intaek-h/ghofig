@@ -39,15 +39,16 @@ var (
 
 // DetailModel represents the config detail view.
 type DetailModel struct {
-	config   *model.Config
-	viewport viewport.Model
-	input    textinput.Model
-	width    int
-	height   int
-	ready    bool
-	editing  bool   // true when input is active
-	success  bool   // true after successful append
-	message  string // success/error message
+	config           *model.Config
+	viewport         viewport.Model
+	input            textinput.Model
+	width            int
+	height           int
+	ready            bool
+	editing          bool   // true when input is active
+	success          bool   // true after successful append
+	message          string // success/error message
+	hasExistingValue bool   // true if editing an existing config value
 }
 
 // NewDetailModel creates a new detail model.
@@ -119,6 +120,12 @@ type configAppendedMsg struct {
 	err     error
 }
 
+// configCommentedOutMsg is sent when config option is commented out
+type configCommentedOutMsg struct {
+	commented bool
+	err       error
+}
+
 // Update handles detail updates.
 func (m DetailModel) Update(msg tea.Msg) (DetailModel, tea.Cmd) {
 	var cmd tea.Cmd
@@ -134,20 +141,47 @@ func (m DetailModel) Update(msg tea.Msg) (DetailModel, tea.Cmd) {
 		}
 		return m, nil
 
+	case configCommentedOutMsg:
+		if msg.err != nil {
+			m.message = fmt.Sprintf("Error: %v", msg.err)
+		} else if msg.commented {
+			m.success = true
+			m.message = "✓ Commented out from config file"
+			m.editing = false
+		} else {
+			m.message = "Option not found in config file"
+			m.editing = false
+		}
+		return m, nil
+
 	case tea.KeyMsg:
 		if m.editing {
 			// In editing mode
 			switch msg.String() {
 			case "enter":
-				// Append to config file
 				value := m.input.Value()
-				if value != "" {
+				optionName := m.config.Title
+
+				// Check if user wants to comment out the option
+				// This happens when input is empty or just "option = " with no value
+				trimmedValue := strings.TrimSpace(value)
+				isEmptyValue := trimmedValue == "" ||
+					trimmedValue == optionName+" =" ||
+					trimmedValue == optionName+"="
+
+				if isEmptyValue {
+					// Comment out the option
 					return m, func() tea.Msg {
-						err := config.AppendLine(value)
-						return configAppendedMsg{success: err == nil, err: err}
+						commented, err := config.CommentOut(optionName)
+						return configCommentedOutMsg{commented: commented, err: err}
 					}
 				}
-				return m, nil
+
+				// Append to config file
+				return m, func() tea.Msg {
+					err := config.AppendLine(value)
+					return configAppendedMsg{success: err == nil, err: err}
+				}
 			case "esc":
 				// Cancel editing
 				m.editing = false
@@ -168,7 +202,8 @@ func (m DetailModel) Update(msg tea.Msg) (DetailModel, tea.Cmd) {
 			m.message = ""
 			// Check if value already exists in config
 			existingValue := config.GetValue(m.config.Title)
-			if existingValue != "" {
+			m.hasExistingValue = existingValue != ""
+			if m.hasExistingValue {
 				m.input.SetValue(fmt.Sprintf("%s = %s", m.config.Title, existingValue))
 			} else {
 				m.input.SetValue(fmt.Sprintf("%s = ", m.config.Title))
@@ -213,7 +248,11 @@ func (m DetailModel) View() string {
 		b.WriteString("  > ")
 		b.WriteString(m.input.View())
 		b.WriteString("\n")
-		b.WriteString(detailEditorHintStyle.Render("  Press Enter to append to config file, Esc to cancel"))
+		hint := "  Enter: save to config, Esc: cancel"
+		if m.hasExistingValue {
+			hint += " | Clear value to comment out"
+		}
+		b.WriteString(detailEditorHintStyle.Render(hint))
 		b.WriteString("\n\n")
 	} else if m.success {
 		// Show success message
