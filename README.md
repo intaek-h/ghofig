@@ -13,8 +13,25 @@ A TUI-based CLI tool for browsing and managing Ghostty terminal configuration.
 
 ## Installation
 
+### Homebrew (macOS/Linux)
+
+```bash
+brew install intaek-h/ghofig/ghofig
+```
+
+### Go Install
+
 ```bash
 go install github.com/intaek-h/ghofig/cmd/ghofig@latest
+```
+
+### From Source
+
+```bash
+git clone https://github.com/intaek-h/ghofig.git
+cd ghofig
+make build
+./bin/ghofig
 ```
 
 ## Usage
@@ -57,7 +74,7 @@ The app has three views:
 
 ### Prerequisites
 
-- Go 1.22+
+- Go 1.24+
 
 ### Setup
 

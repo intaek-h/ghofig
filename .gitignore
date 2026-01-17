@@ -1,8 +1,8 @@
 # Build output
 bin/
 
-# Generated database (regenerate with: make parse)
-data/ghofig.db
+# Note: data/ghofig.db is tracked in git (required for go:embed)
+# Regenerate with: make parse
 
 # IDE
 .idea/
