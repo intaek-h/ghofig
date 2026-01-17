@@ -12,7 +12,7 @@ import (
 
 var (
 	menuLogoStyle = lipgloss.NewStyle().
-			Foreground(ThemeTextInput)
+			Foreground(ThemePrimary)
 
 	menuItemStyle = lipgloss.NewStyle()
 
@@ -77,8 +77,8 @@ const (
 // NewMenuModel creates a new menu model.
 func NewMenuModel() MenuModel {
 	items := []list.Item{
-		MenuItem{title: "Config Options", description: "Search Ghostty configuration options"},
-		MenuItem{title: "Config Editor", description: "Edit your Ghostty config file directly"},
+		MenuItem{title: "Browse Options", description: "Search Ghostty configuration options"},
+		MenuItem{title: "Config Editor ", description: "Edit your Ghostty config file directly"},
 	}
 
 	l := list.New(items, MenuItemDelegate{}, 0, 0)
@@ -97,8 +97,8 @@ func (m MenuModel) SetSize(width, height int) MenuModel {
 	m.width = width
 	m.height = height
 	m.list.SetWidth(width)
-	// Logo: 8 lines + 1 subtitle + 2 spacing + 1 help = 12 lines
-	logoHeight := 12
+	// Logo: 8 lines + 2 spacing + 1 help = 11 lines
+	logoHeight := 11
 	listHeight := height - logoHeight
 	// Ensure minimum height to show all menu items
 	if listHeight < 3 {
@@ -126,17 +126,26 @@ func (m MenuModel) Update(msg tea.Msg) (MenuModel, tea.Cmd) {
 func (m MenuModel) View() string {
 	var b strings.Builder
 
-	// ASCII art logo
-	logo := `   _____ _               _   _         
-  / ____| |             | | | |        
- | |  __| |__   ___  ___| |_| |_ _   _ 
- | | |_ | '_ \ / _ \/ __| __| __| | | |
- | |__| | | | | (_) \__ \ |_| |_| |_| |
-  \_____|_| |_|\___/|___/\__|\__|\__, |
-                                  __/ |
-                                 |___/    `
+	// ASCII art logo (Mole CLI style - compact with inline info)
+	// Split rendering: logo in ThemePrimary, github link in ThemeTextMuted
+	logoTop := ` _____ _           __ _
+|  __ | |         / _(_)
+| |  \| |__   ___| |_  _  __ _
+| | __| '_ \ / _ \   _| |/ _` + "`" + ` |  `
+	githubLink := `github.com/intaek-h/ghofig`
+	logoMid := `
+| |_\ \ | | | (_) | | | | (_| |  `
+	description := `Browse and manage Ghostty config.`
+	logoBottom := `
+ \____/_| |_|\___/|_| |_|\__, |
+                          __/ |
+                         |___/ `
 
-	b.WriteString(menuLogoStyle.Render(logo + "\nGhofig: Ghostty Config Editor"))
+	b.WriteString(menuLogoStyle.Render(logoTop))
+	b.WriteString(menuDescStyle.Render(githubLink))
+	b.WriteString(menuLogoStyle.Render(logoMid))
+	b.WriteString(menuLogoStyle.Render(description))
+	b.WriteString(menuLogoStyle.Render(logoBottom))
 	b.WriteString("\n\n")
 
 	// Menu items

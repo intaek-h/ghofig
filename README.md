@@ -79,6 +79,7 @@ When Ghostty releases new configuration options:
 - [Bubble Tea](https://github.com/charmbracelet/bubbletea) - TUI framework
 - [Bubbles](https://github.com/charmbracelet/bubbles) - TUI components
 - [Lip Gloss](https://github.com/charmbracelet/lipgloss) - Styling
+- [Mole](https://github.com/tw93/mole) - Design Reference
 
 ## License
 
