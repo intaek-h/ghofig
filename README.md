@@ -8,17 +8,13 @@
 
 A TUI for browsing and managing [Ghostty](https://ghostty.org/) terminal configuration.
 
-**Ghofig** = **Gho**stty + Con**fig**
-
 <img alt="Ghofig TUI demo" width="600" src="https://github.com/intaek-h/ghofig/raw/main/assets/demo.gif">
 
 ## Features
 
-- Browse all 180+ Ghostty configuration options
-- Search configs by name or description
-- View detailed documentation for each option
-- Edit your Ghostty config file directly from the TUI
-- Fully offline - no network required
+- A more intuitive view than Ghostty Docs
+- Search by name or description
+- Edit config directly without opening a new Text Editor
 
 ## Installation
 
@@ -53,28 +49,13 @@ Download the latest binary from the [releases page](https://github.com/intaek-h/
 ghofig
 ```
 
-### Keybindings
-
-| Key | Action |
-|-----|--------|
-| `q`, `ctrl+c` | Quit |
-| `esc`, `backspace` | Go back |
-| `up/down`, `k/j` | Navigate |
-| `enter` | Select |
-| `tab` | Toggle focus (search view) |
-| `g/G` | Jump to top/bottom (detail view) |
-
 ## How It Works
 
-Ghofig parses the official [Ghostty configuration reference](https://ghostty.org/docs/config/reference) and stores it in an embedded SQLite database. The database is compiled into the binary, making the tool completely self-contained and fast.
-
-```
-reference.mdx.txt -> parser -> ghofig.db -> go:embed -> binary
-```
+I parsed their raw doc mdx file and dumped the data to the embeded sqlite db.
 
 ## Contributing
 
-Contributions are welcome! Feel free to open an issue or submit a pull request.
+Always welcome.
 
 ### Development Setup
 
@@ -93,12 +74,11 @@ When Ghostty releases new configuration options:
 2. Replace `reference.mdx.txt`
 3. Run `make parse` to regenerate the database
 
-## Built With
+## Thanks to
 
 - [Bubble Tea](https://github.com/charmbracelet/bubbletea) - TUI framework
 - [Bubbles](https://github.com/charmbracelet/bubbles) - TUI components
 - [Lip Gloss](https://github.com/charmbracelet/lipgloss) - Styling
-- [modernc.org/sqlite](https://pkg.go.dev/modernc.org/sqlite) - Pure Go SQLite
 
 ## License
 
