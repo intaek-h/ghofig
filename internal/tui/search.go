@@ -65,7 +65,7 @@ func NewSearchModel() SearchModel {
 	ti.CharLimit = 100
 	ti.Width = 40
 	ti.Prompt = ""
-	ti.TextStyle = lipgloss.NewStyle().Foreground(colorGray100)
+	ti.TextStyle = lipgloss.NewStyle().Foreground(ThemeTextInput)
 	ti.PlaceholderStyle = lipgloss.NewStyle().Foreground(ThemeTextMuted)
 	ti.Focus()
 

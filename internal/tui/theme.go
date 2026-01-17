@@ -2,72 +2,41 @@ package tui
 
 import "github.com/charmbracelet/lipgloss"
 
-// Color palette based on dark theme
-var (
-	// Backgrounds
-	colorBackground100 = lipgloss.Color("#0A0A0A")
-	colorBackground200 = lipgloss.Color("#000000")
+// Adaptive colors that work on both light and dark terminal backgrounds.
+// Format: AdaptiveColor{Light: "color for light bg", Dark: "color for dark bg"}
 
-	// Grays
-	colorGray100  = lipgloss.Color("#1A1A1A")
-	colorGray200  = lipgloss.Color("#1F1F1F")
-	colorGray300  = lipgloss.Color("#292929")
-	colorGray400  = lipgloss.Color("#2E2E2E")
-	colorGray500  = lipgloss.Color("#454545")
-	colorGray600  = lipgloss.Color("#878787")
-	colorGray700  = lipgloss.Color("#8F8F8F")
-	colorGray900  = lipgloss.Color("#A1A1A1")
-	colorGray1000 = lipgloss.Color("#EDEDED")
-
-	// Blues
-	colorBlue600  = lipgloss.Color("#0099FF")
-	colorBlue700  = lipgloss.Color("#0070F3")
-	colorBlue900  = lipgloss.Color("#52A8FF")
-	colorBlue1000 = lipgloss.Color("#EBF8FF")
-
-	// Accent colors
-	colorPurple700 = lipgloss.Color("#8E4EC6")
-	colorPurple900 = lipgloss.Color("#BF7AF0")
-	colorPink700   = lipgloss.Color("#E93D82")
-	colorCyan      = lipgloss.Color("#50E3C2")
-
-	// Status colors
-	colorRed700   = lipgloss.Color("#E5484D")
-	colorGreen700 = lipgloss.Color("#46A758")
-	colorAmber700 = lipgloss.Color("#FFB224")
-)
-
-// Semantic theme colors
+// Semantic theme colors using AdaptiveColor for automatic light/dark detection
 var (
 	// Primary - used for main actions, selected items, focus
-	ThemePrimary   = colorBlue700
-	ThemeSecondary = colorBlue900
+	ThemePrimary = lipgloss.AdaptiveColor{Light: "#0055CC", Dark: "#0070F3"}
+	// Secondary - used for secondary elements
+	ThemeSecondary = lipgloss.AdaptiveColor{Light: "#0066DD", Dark: "#52A8FF"}
 
 	// Accent - used for highlights, special elements
-	ThemeAccent = colorPurple700
+	ThemeAccent = lipgloss.AdaptiveColor{Light: "#7C3AED", Dark: "#8E4EC6"}
 
 	// Text
-	ThemeText      = colorGray1000 // Main text
-	ThemeTextMuted = colorGray600  // Secondary text, descriptions, help
-	ThemeTextInput = colorGray100  // Input text color
+	ThemeText      = lipgloss.AdaptiveColor{Light: "#1A1A1A", Dark: "#EDEDED"}   // Main text
+	ThemeTextMuted = lipgloss.AdaptiveColor{Light: "#666666", Dark: "#878787"}   // Secondary text, descriptions, help
+	ThemeTextInput = lipgloss.AdaptiveColor{Light: "#393939ff", Dark: "#1A1A1A"} // Input text color (inverted for contrast)
 
 	// Backgrounds
-	ThemeBgDefault   = colorBackground100
-	ThemeBgSubtle    = colorGray200
-	ThemeBgHighlight = colorGray300
+	ThemeBgDefault   = lipgloss.AdaptiveColor{Light: "#FAFAFA", Dark: "#0A0A0A"}
+	ThemeBgSubtle    = lipgloss.AdaptiveColor{Light: "#F0F0F0", Dark: "#1F1F1F"}
+	ThemeBgHighlight = lipgloss.AdaptiveColor{Light: "#E5E5E5", Dark: "#292929"}
 
 	// Borders
-	ThemeBorder       = colorGray500
-	ThemeBorderFocus  = colorBlue700
-	ThemeBorderSubtle = colorGray400
+	ThemeBorder       = lipgloss.AdaptiveColor{Light: "#CCCCCC", Dark: "#454545"}
+	ThemeBorderFocus  = lipgloss.AdaptiveColor{Light: "#0055CC", Dark: "#0070F3"}
+	ThemeBorderSubtle = lipgloss.AdaptiveColor{Light: "#DDDDDD", Dark: "#2E2E2E"}
 
 	// Search highlight
-	ThemeMatch = colorBlue900
+	ThemeMatch = lipgloss.AdaptiveColor{Light: "#0066DD", Dark: "#52A8FF"}
 
 	// Status
-	ThemeError   = colorRed700
-	ThemeSuccess = colorGreen700
-	ThemeWarning = colorAmber700
+	ThemeError   = lipgloss.AdaptiveColor{Light: "#DC2626", Dark: "#E5484D"}
+	ThemeSuccess = lipgloss.AdaptiveColor{Light: "#16A34A", Dark: "#46A758"}
+	ThemeWarning = lipgloss.AdaptiveColor{Light: "#D97706", Dark: "#FFB224"}
 )
 
 // Common style constants

@@ -12,7 +12,7 @@ import (
 
 var (
 	menuLogoStyle = lipgloss.NewStyle().
-			Foreground(colorGray100)
+			Foreground(ThemeTextInput)
 
 	menuItemStyle = lipgloss.NewStyle()
 
@@ -97,9 +97,14 @@ func (m MenuModel) SetSize(width, height int) MenuModel {
 	m.width = width
 	m.height = height
 	m.list.SetWidth(width)
-	// Logo takes ~19 lines + 2 for spacing + 1 for help
-	logoHeight := 22
-	m.list.SetHeight(height - logoHeight)
+	// Logo: 8 lines + 1 subtitle + 2 spacing + 1 help = 12 lines
+	logoHeight := 12
+	listHeight := height - logoHeight
+	// Ensure minimum height to show all menu items
+	if listHeight < 3 {
+		listHeight = 3
+	}
+	m.list.SetHeight(listHeight)
 	return m
 }
 
