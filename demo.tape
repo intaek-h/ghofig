@@ -1,9 +1,11 @@
 Output assets/demo.gif
 
 Set FontSize 16
-Set Width 900
-Set Height 600
+Set Width 1300
+Set Height 650
 Set Framerate 60
+Set Padding 20
+Set WindowBar Colorful
 Set Theme "AtomOneLight"
 
 Sleep 500ms
